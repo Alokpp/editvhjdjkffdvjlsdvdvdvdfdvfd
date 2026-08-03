@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -542,6 +541,14 @@ section{position:relative;padding:160px 0;}
 .field input::placeholder, .field textarea::placeholder{color:var(--muted-dim);}
 .submit-row{margin-top:36px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
 .form-note{font-size:12.5px;color:var(--muted-dim);}
+.form-status{
+  font-size:13.5px;font-weight:500;padding:14px 18px;border-radius:10px;
+  margin-top:20px;display:none;align-items:center;gap:10px;
+}
+.form-status.show{display:flex;}
+.form-status.success{background:rgba(52,199,89,0.08);color:#4ADE80;border:1px solid rgba(52,199,89,0.25);}
+.form-status.error{background:rgba(234,55,43,0.08);color:var(--red-hover);border:1px solid rgba(234,55,43,0.25);}
+.btn-primary[disabled]{opacity:0.6;pointer-events:none;}
 
 /* ============ FOOTER ============ */
 footer{padding-top:110px;padding-bottom:40px;border-top:1px solid var(--line);}
@@ -898,18 +905,23 @@ footer{padding-top:110px;padding-bottom:40px;border-top:1px solid var(--line);}
         </div>
       </div>
 
-      <form class="reveal" onsubmit="return false;">
+      <form class="reveal" id="contactForm">
+        <!-- Web3Forms access key: replace with the key emailed to you at signup -->
+        <input type="hidden" name="access_key" value="96519e78-947e-40be-8ff3-d5eabf83f204">
+        <input type="hidden" name="subject" value="New project request from Editvibes website">
+        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
         <div class="form-row">
-          <div class="field"><label>Name</label><input type="text" placeholder="Your full name" required></div>
-          <div class="field"><label>Company</label><input type="text" placeholder="Company name"></div>
+          <div class="field"><label>Name</label><input type="text" name="name" placeholder="Your full name" required></div>
+          <div class="field"><label>Company</label><input type="text" name="company" placeholder="Company name"></div>
         </div>
         <div class="form-row">
-          <div class="field"><label>Email</label><input type="email" placeholder="you@company.com" required></div>
-          <div class="field"><label>Phone</label><input type="tel" placeholder="+1 (555) 000-0000"></div>
+          <div class="field"><label>Email</label><input type="email" name="email" placeholder="you@company.com" required></div>
+          <div class="field"><label>Phone</label><input type="tel" name="phone" placeholder="+1 (555) 000-0000"></div>
         </div>
         <div class="field">
           <label>Budget</label>
-          <select required>
+          <select name="budget" required>
             <option value="" disabled selected>Select a range</option>
             <option>$1,000 – $5,000</option>
             <option>$5,000 – $15,000</option>
@@ -917,11 +929,12 @@ footer{padding-top:110px;padding-bottom:40px;border-top:1px solid var(--line);}
             <option>$50,000+</option>
           </select>
         </div>
-        <div class="field"><label>Project Details</label><textarea placeholder="Tell us about your project, timeline and goals..." required></textarea></div>
+        <div class="field"><label>Project Details</label><textarea name="message" placeholder="Tell us about your project, timeline and goals..." required></textarea></div>
         <div class="submit-row">
-          <button type="submit" class="btn btn-primary magnetic">Send Project Brief <span class="btn-arrow">→</span></button>
+          <button type="submit" class="btn btn-primary magnetic" id="formSubmitBtn">Send Project Brief <span class="btn-arrow">→</span></button>
           <span class="form-note">We reply within 24 hours.</span>
         </div>
+        <div class="form-status" id="formStatus"></div>
       </form>
     </div>
   </div>
@@ -1144,6 +1157,45 @@ document.getElementById('testPrev').addEventListener('click', ()=>{
 });
 window.addEventListener('resize', updateTrack);
 updateTrack();
+
+/* ============ CONTACT FORM (Web3Forms) ============ */
+const contactForm = document.getElementById('contactForm');
+const formStatus = document.getElementById('formStatus');
+const formSubmitBtn = document.getElementById('formSubmitBtn');
+
+contactForm.addEventListener('submit', async function(e){
+  e.preventDefault();
+
+  const formData = new FormData(contactForm);
+  const originalBtnText = formSubmitBtn.innerHTML;
+  formSubmitBtn.setAttribute('disabled', 'true');
+  formSubmitBtn.innerHTML = 'Sending...';
+  formStatus.classList.remove('show','success','error');
+
+  try{
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: formData
+    });
+    const result = await response.json();
+
+    if(result.success){
+      formStatus.textContent = "✓ Thanks — your project brief was sent. We'll reply within 24 hours.";
+      formStatus.classList.add('show','success');
+      contactForm.reset();
+    } else {
+      formStatus.textContent = "Something went wrong sending your message. Please email us directly instead.";
+      formStatus.classList.add('show','error');
+    }
+  } catch(err){
+    formStatus.textContent = "Network error — please check your connection or email us directly.";
+    formStatus.classList.add('show','error');
+  } finally {
+    formSubmitBtn.removeAttribute('disabled');
+    formSubmitBtn.innerHTML = originalBtnText;
+  }
+});
 
 /* ============ PREFERS REDUCED MOTION ============ */
 if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
